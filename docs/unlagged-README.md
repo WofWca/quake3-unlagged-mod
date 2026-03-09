@@ -3,6 +3,12 @@
 Lag compensation for Quake III Arena.
 Now, in an era of git, in an easy-to-merge form.
 
+This repository is not about the entirety of the code contained in it
+but rather just
+[the patches on top of the first commit](https://github.com/WofWca/quake3-unlagged-mod/compare/quake3-initial-gpl-release...master),
+totalling ~2238 additions and ~35 deletions
+(`git diff quake3-initial-gpl-release --stat -- code`).
+
 ## Usage
 
 This project is intended for mod developers
@@ -25,6 +31,18 @@ Contrarily, this project allows you to simply `git merge` it.
 If your mod is based on [ioquake3](https://github.com/ioquake/ioq3/pulls),
 do `git merge unlagged/ioq3` instead
 so as to not have even fewer merge conflicts.
+
+## License
+
+As you can see in COPYING and in license notices,
+by default this is distributed under GPL-2.0-or-later.
+
+This mod has originally been distributed under the "QIIIA Game Source License",
+before there was a GPL-2.0-or-later release of Quake III Arena.
+So you are also free to apply the patches to your mod under that license.
+Make sure to apply just the patches though and not blindly copy
+the whole project, because most of the files here
+have never been released by id Software under "QIIIA Game Source License"!
 
 ## Misc
 
