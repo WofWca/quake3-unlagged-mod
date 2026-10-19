@@ -252,7 +252,8 @@ void G_TimeShiftAllClients( int time, gentity_t *skip ) {
 	int			i;
 	gentity_t	*ent;
 	qboolean debug = ( skip != NULL && skip->client && 
-			skip->client->pers.debugDelag && skip->s.weapon == WP_RAILGUN );
+			skip->client->pers.debugDelag && g_cheats.integer &&
+			skip->s.weapon == WP_RAILGUN );
 
 	// for every client
 	ent = &g_entities[0];
@@ -277,13 +278,15 @@ void G_DoTimeShiftFor( gentity_t *ent ) {
 #else
 	int wpflags[WP_NUM_WEAPONS] = { 0, 0, 2, 4, 0, 0, 8, 16, 0, 0, 0, 32, 0, 64 };
 #endif
-	int wpflag = wpflags[ent->client->ps.weapon];
+	int wpflag;
 	int time;
 
 	// don't time shift for mistakes or bots
 	if ( !ent->inuse || !ent->client || (ent->r.svFlags & SVF_BOT) ) {
 		return;
 	}
+
+	wpflag = wpflags[ent->client->ps.weapon];
 
 	// if it's enabled server-side and the client wants it or wants it for this weapon
 	if ( g_delagHitscan.integer && ( ent->client->pers.delag & 1 || ent->client->pers.delag & wpflag ) ) {
