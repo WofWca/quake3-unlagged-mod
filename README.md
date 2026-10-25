@@ -3,6 +3,8 @@
 Lag compensation for Quake III Arena.
 Now, in an era of git, in an easy-to-merge form.
 
+![Screenshot with 3 player models. 1. Where you see Xaero. 2. Where Xaero is on the server (further). 3. Where Xaero will be by the time your command with the button press reaches the server (even further).](./unlagged-docs/images/latency_on_aim.jpg)
+
 This repository is not about the entirety of the code contained in it
 but rather just
 [the patches on top of the first commit](https://github.com/WofWca/quake3-unlagged-mod/compare/quake3-initial-gpl-release...master),
