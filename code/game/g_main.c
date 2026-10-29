@@ -97,6 +97,7 @@ vmCvar_t	g_proxMineTimeout;
 #endif
 //unlagged - server options
 vmCvar_t	g_delagHitscan;
+vmCvar_t	g_delagProjectiles;
 vmCvar_t	g_unlaggedVersion;
 vmCvar_t	g_truePing;
 vmCvar_t	g_lightningDamage;
@@ -188,6 +189,8 @@ static cvarTable_t		gameCvarTable[] = {
 
 //unlagged - server options
 	{ &g_delagHitscan, "g_delagHitscan", "1", CVAR_ARCHIVE | CVAR_SERVERINFO, 0, qtrue },
+	// Note that projectile delag never actually worked in Unlagged v2.01.
+	{ &g_delagProjectiles, "g_delagProjectiles", "0", CVAR_ARCHIVE | CVAR_SERVERINFO, 0, qtrue },
 	{ &g_unlaggedVersion, "g_unlaggedVersion", "2.0", CVAR_ROM | CVAR_SERVERINFO, 0, qfalse },
 	{ &g_truePing, "g_truePing", "1", CVAR_ARCHIVE, 0, qtrue },
 	{ &g_lightningDamage, "g_lightningDamage", "8", 0, 0, qtrue },
@@ -1818,7 +1821,9 @@ int start, end;
 	// NOW run the missiles, with all players backward-reconciled
 	// to the positions they were in exactly 50ms ago, at the end
 	// of the last server frame
-	G_TimeShiftAllClients( level.previousTime, NULL );
+	if ( g_delagProjectiles.integer ) {
+		G_TimeShiftAllClients( level.previousTime, NULL );
+	}
 
 	ent = &g_entities[0];
 	for (i=0 ; i<level.num_entities ; i++, ent++) {
@@ -1836,7 +1841,9 @@ int start, end;
 		}
 	}
 
-	G_UnTimeShiftAllClients( NULL );
+	if ( g_delagProjectiles.integer ) {
+		G_UnTimeShiftAllClients( NULL );
+	}
 //unlagged - backward reconciliation #2
 
 end = trap_Milliseconds();

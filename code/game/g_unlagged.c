@@ -137,7 +137,7 @@ void G_TimeShiftClient( gentity_t *ent, int time, qboolean debug, gentity_t *deb
 	// assumes no two adjacent records have the same timestamp
 	j = k = ent->client->historyHead;
 	do {
-		if ( ent->client->history[j].leveltime <= time )
+		if ( ent->client->history[j].leveltime < time )
 			break;
 
 		k = j;
