@@ -51,6 +51,91 @@ void G_BounceProjectile( vec3_t start, vec3_t impact, vec3_t dir, vec3_t endout 
 
 
 /*
+================
+MaybeRunMissile
+
+The caller must check the return value `freed`
+and not use the `missile` anymore if it's `qtrue`.
+
+This should be called whenever a missile is fired by a player.
+
+This will advance the missile by `MISSILE_PRESTEP_TIME` milliseconds
+(as long this is not disabled by the CVAR).
+This ensures consistent rocket jump timing, i.e. if a missile
+is shot point-blank, it explodes on the exact `level.time` it was fired at,
+and the shooter's position is also exactly right.
+The regular `G_RunMissile` in `G_RunFrame` would be slighly off in this regard:
+it time-shifts players to `level.previousTime`,
+but a missile might have been fired between `G_RunFrame`s,
+i.e. not exactly at `level.previousTime`.
+
+This doens' really 
+
+To see the effect of this, set a very low `snaps`,
+get quad, shoot directly under your feet while running
+and observe that your max jump height and velocity is not consistent
+between retries.
+================
+*/
+static qboolean MaybeRunMissile( gentity_t *shooter, gentity_t *missile ) {
+	if ( g_delagProjectiles.integer & 0x2 ) {
+		// Use the same time which will be used for time-shifting for missiles
+		// in the next `G_RunFrame` (`level.time` now equals
+		// `level.previousTime` in the next `G_RunFrame`)
+		// so that the player positions are the same
+		// regardless of whether the missile exploded right after the shot
+		// (here) or in `G_RunFrame`.
+
+		// so that in terms of damaging other players it doesn't matter
+		// whether the missile exploded right after the shot (here)
+		// or in `G_RunFrame`.
+
+
+		// so that missile hits are more consistent
+		// regardless of whether the missile exploded right after the shot
+		// (here) or in `G_RunFrame`.
+		// In other words, for all players except the shooter
+		// running `MaybeRunMissile` only affects when the missile
+
+		// We also could have used the actual command time as with hitscan
+		// (see `G_DoTimeShiftFor`) so that point-blank missile shots
+		// are basically hitscan, no matter how big the shooter's ping is.
+		// But that would be inconsistent:
+		// at long range the player has to lead their shots
+		// the more their ping is, but at short range
+		// they wouldn't need to lead at all.
+		//
+		// FIXME: but wouldn't it make sense
+		// to also use `client->frameOffset` here?
+		// And also for the missiles' `pos.trTime`?
+
+
+
+
+		// TODO FUUUUUUUCK. But this actually works very rarely...
+		// Because if you shoot just a step from directly below you
+		// then this won't work.......
+		// I mean in itself running missiles immediately
+		// is generally better than only running them in `G_RunFrame`,
+		// but is's not enough for full consistency...
+
+        // We need a completely different approach I'm afraid...
+
+
+		int shiftTime = level.time;
+
+		G_TimeShiftAllClients( shiftTime, shooter );
+		G_RunMissile( missile );
+		G_UnTimeShiftAllClients( shooter );
+	}
+	// Generally if a missile explodes in `G_RunMissile`
+	// then it turns into `ET_GENERAL` and is not freed for some time,
+	// but e.g. hitting the sky might immediately free it.
+	return !missile->inuse;
+}
+
+
+/*
 ======================================================================
 
 GAUNTLET
@@ -281,10 +366,16 @@ BFG
 
 void BFG_Fire ( gentity_t *ent ) {
 	gentity_t	*m;
+	qboolean	freed;
 
 	m = fire_bfg (ent, muzzle, forward);
 	m->damage *= s_quadFactor;
 	m->splashDamage *= s_quadFactor;
+
+	freed = MaybeRunMissile( ent, m );
+	if ( freed ) {
+		return;
+	}
 
 //	VectorAdd( m->s.pos.trDelta, ent->client->ps.velocity, m->s.pos.trDelta );	// "real" physics
 }
@@ -433,6 +524,7 @@ GRENADE LAUNCHER
 
 void weapon_grenadelauncher_fire (gentity_t *ent) {
 	gentity_t	*m;
+	qboolean	freed;
 
 	// extra vertical velocity
 	forward[2] += 0.2f;
@@ -441,6 +533,11 @@ void weapon_grenadelauncher_fire (gentity_t *ent) {
 	m = fire_grenade (ent, muzzle, forward);
 	m->damage *= s_quadFactor;
 	m->splashDamage *= s_quadFactor;
+
+	freed = MaybeRunMissile( ent, m );
+	if ( freed ) {
+		return;
+	}
 
 //	VectorAdd( m->s.pos.trDelta, ent->client->ps.velocity, m->s.pos.trDelta );	// "real" physics
 }
@@ -455,10 +552,51 @@ ROCKET
 
 void Weapon_RocketLauncher_Fire (gentity_t *ent) {
 	gentity_t	*m;
+	qboolean	freed;
 
 	m = fire_rocket (ent, muzzle, forward);
 	m->damage *= s_quadFactor;
 	m->splashDamage *= s_quadFactor;
+
+
+	// G_TimeShiftAllClients(level.time, NULL);
+	// TODO wait shit, are we not supposed to time-shift everyone
+	// to `level.previousTime`, as it is in another instance
+	// of `G_RunMissile` in the Unlagged mod?
+	//
+	// But hm, to me it makes sense that the initial shot acts sort of like
+	// a short-ranged hitscan.
+	// So basically if you're at very close range and you aim at the target
+	// then you hit them.
+	//
+	// Or would that mean inconsistency? Because generally you have to aim
+	// a bit ahead, but here you aim directly.
+	//
+	// A player command can arrive veeeeery late, after several frames even.
+	//
+	// Wait holy shit. But maybe we should just run the missile
+	// for `level.time` (or `level.previousTime`?)
+	// So just sort of like "temporarily increase FPS".
+
+	// G_DoTimeShiftFor( ent );
+	// G_RunMissile( m );
+	// G_UndoTimeShiftFor( ent );
+
+	// G_DoTimeShiftFor( ent );
+
+	// TODO explain why not time-shift self.
+	// For rocket-jumping only? Or that the position is already correct.
+	//
+	// But why do we time-shift others then???
+
+	freed = MaybeRunMissile( ent, m );
+	if ( freed ) {
+		return;
+	}
+
+	if ( m->s.eType == ET_GENERAL ) {
+		G_Printf( "first run hit\n" );
+	}
 
 //	VectorAdd( m->s.pos.trDelta, ent->client->ps.velocity, m->s.pos.trDelta );	// "real" physics
 }
@@ -474,10 +612,16 @@ PLASMA GUN
 
 void Weapon_Plasmagun_Fire (gentity_t *ent) {
 	gentity_t	*m;
+	qboolean	freed;
 
 	m = fire_plasma (ent, muzzle, forward);
 	m->damage *= s_quadFactor;
 	m->splashDamage *= s_quadFactor;
+
+	freed = MaybeRunMissile( ent, m );
+	if ( freed ) {
+		return;
+	}
 
 //	VectorAdd( m->s.pos.trDelta, ent->client->ps.velocity, m->s.pos.trDelta );	// "real" physics
 }
@@ -640,8 +784,18 @@ GRAPPLING HOOK
 
 void Weapon_GrapplingHook_Fire (gentity_t *ent)
 {
-	if (!ent->client->fireHeld && !ent->client->hook)
-		fire_grapple (ent, muzzle, forward);
+	// TODO wait, we already do some Unlagged magic in `fire_grapple`.
+	// Maybe no need to change this? For now at least.
+	if (!ent->client->fireHeld && !ent->client->hook) {
+		gentity_t	*m;
+		qboolean	freed;
+
+		m = fire_grapple (ent, muzzle, forward);
+
+		freed = MaybeRunMissile( ent, m );
+		if ( !freed ) {
+		}
+	}
 
 	ent->client->fireHeld = qtrue;
 }
@@ -783,12 +937,22 @@ NAILGUN
 void Weapon_Nailgun_Fire (gentity_t *ent) {
 	gentity_t	*m;
 	int			count;
+	qboolean	delag = g_delagProjectiles.integer & 0x2;
 
+	// Same as in `MaybeRunMissile`.
+	if ( delag ) G_TimeShiftAllClients( level.time, ent );
 	for( count = 0; count < NUM_NAILSHOTS; count++ ) {
 		m = fire_nail (ent, muzzle, forward, right, up );
 		m->damage *= s_quadFactor;
 		m->splashDamage *= s_quadFactor;
+
+		if ( delag ) G_RunMissile( m );
+		if ( !m->inuse ) {
+			// Make sure not to use-after-free.
+			continue;
+		}
 	}
+	if ( delag ) G_UnTimeShiftAllClients( ent );
 
 //	VectorAdd( m->s.pos.trDelta, ent->client->ps.velocity, m->s.pos.trDelta );	// "real" physics
 }
@@ -804,6 +968,7 @@ PROXIMITY MINE LAUNCHER
 
 void weapon_proxlauncher_fire (gentity_t *ent) {
 	gentity_t	*m;
+	qboolean	freed;
 
 	// extra vertical velocity
 	forward[2] += 0.2f;
@@ -812,6 +977,11 @@ void weapon_proxlauncher_fire (gentity_t *ent) {
 	m = fire_prox (ent, muzzle, forward);
 	m->damage *= s_quadFactor;
 	m->splashDamage *= s_quadFactor;
+
+	freed = MaybeRunMissile( ent, m );
+	if ( freed ) {
+		return;
+	}
 
 //	VectorAdd( m->s.pos.trDelta, ent->client->ps.velocity, m->s.pos.trDelta );	// "real" physics
 }
