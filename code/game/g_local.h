@@ -827,6 +827,7 @@ extern	vmCvar_t	g_localTeamPref;
 //unlagged - server options
 // some new server-side variables
 extern	vmCvar_t	g_delagHitscan;
+extern	vmCvar_t	g_delagProjectiles;
 extern	vmCvar_t	g_unlaggedVersion;
 extern	vmCvar_t	g_truePing;
 // server admins can adjust this if they *believe* the lightning 

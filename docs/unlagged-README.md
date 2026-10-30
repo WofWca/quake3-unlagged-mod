@@ -3,6 +3,8 @@
 Lag compensation for Quake III Arena.
 Now, in an era of git, in an easy-to-merge form.
 
+![Screenshot with 3 player models. 1. Where you see Xaero. 2. Where Xaero is on the server (further). 3. Where Xaero will be by the time your command with the button press reaches the server (even further).](./unlagged-docs/images/latency_on_aim.jpg)
+
 This repository is not about the entirety of the code contained in it
 but rather just
 [the patches on top of the first commit](https://github.com/WofWca/quake3-unlagged-mod/compare/quake3-initial-gpl-release...master),
@@ -43,6 +45,22 @@ So you are also free to apply the patches to your mod under that license.
 Make sure to apply just the patches though and not blindly copy
 the whole project, because most of the files here
 have never been released by id Software under "QIIIA Game Source License"!
+
+## Maintained?
+
+I'd be glad to have this repository as the central place
+for all the improvements to the Unlagged logic.
+
+There are many projects which made improvements to Unlagged,
+but the commits are scattered, and the license is usually either just GPL
+or just QIIIA SDK, so we'd have to pick one.
+That is unless the commit authors agree to dual-license those commits.
+
+- <https://github.com/alcachofass/devotion>
+- <https://github.com/ec-/baseq3a>
+- <https://github.com/GrangerHub/tremulous-game-logic/blob/develop/src/game/g_unlagged.c>
+- <https://github.com/Razish/japp/blob/master/game/g_unlagged.cpp>
+- <https://github.com/videoP/jaPRO/blob/main/codemp/game/g_active.c>
 
 ## Misc
 
